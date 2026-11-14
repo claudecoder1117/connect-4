@@ -131,11 +131,12 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
     });
   }
+  var APP_VERSION = '2'; // bump when redeploying so shared links skip stale caches
   function stateToHash() {
     return '#s=' + moves.join('') + '&r=' + encodeURIComponent(names.R) + '&y=' + encodeURIComponent(names.Y);
   }
   function stateToLink() {
-    return location.origin + location.pathname + stateToHash();
+    return location.origin + location.pathname + '?v=' + APP_VERSION + stateToHash();
   }
   function parseHash() {
     var h = location.hash.slice(1);
@@ -149,7 +150,6 @@
     board = []; moves = []; gameOver = false; winCells = [];
     names = { R: st.R, Y: st.Y };
     for (var r = 0; r < ROWS; r++) { board.push([]); for (var c = 0; c < COLS; c++) board[r].push(null); }
-    bannerEl.textContent = ''; $('btn-rematch').hidden = true;
     for (var i = 0; i < st.moves.length; i++) {
       if (!applyMoveRaw(st.moves[i])) break;
     }
@@ -196,7 +196,24 @@
         })(r, c);
       }
     }
+    updateBanner();
     updateStatus();
+  }
+  // The banner is derived from the game state on every render, so it shows
+  // no matter how the state arrived (your move, or opening a shared link).
+  function updateBanner() {
+    if (gameOver && winCells.length) {
+      var w = lastMover();
+      var winner = w === 'R' ? names.R : names.Y;
+      bannerEl.innerHTML = '<span class="' + (w === 'R' ? 'r' : 'y') + '">' + escapeHtml(winner || (w === 'R' ? 'Red' : 'Yellow')) + ' wins!</span>';
+      $('btn-rematch').hidden = false;
+    } else if (gameOver) {
+      bannerEl.textContent = "It's a draw!";
+      $('btn-rematch').hidden = false;
+    } else {
+      bannerEl.textContent = '';
+      $('btn-rematch').hidden = true;
+    }
   }
   function showGhost(col) {
     if (gameOver || !isMyTurn()) return;
@@ -231,15 +248,6 @@
     if (!color) return;
     history.replaceState(null, '', stateToHash());
     $('game-link-label').textContent = stateToLink();
-    if (gameOver) {
-      if (winCells.length) {
-        var winner = color === 'R' ? names.R : names.Y;
-        bannerEl.innerHTML = '<span class="' + (color === 'R' ? 'r' : 'y') + '">' + escapeHtml(winner || (color === 'R' ? 'Red' : 'Yellow')) + ' wins!</span>';
-      } else {
-        bannerEl.textContent = "It's a draw!";
-      }
-      $('btn-rematch').hidden = false;
-    }
     render();
   }
   function checkWin(row, col, color) {
@@ -289,17 +297,6 @@
   function showGame() {
     lobbyEl.hidden = true; joinEl.hidden = true; gameEl.hidden = false;
   }
-  function showGameOverBanner() {
-    if (!gameOver) return;
-    if (winCells.length) {
-      var w = lastMover();
-      var winner = w === 'R' ? names.R : names.Y;
-      bannerEl.innerHTML = '<span class="' + (w === 'R' ? 'r' : 'y') + '">' + escapeHtml(winner || (w === 'R' ? 'Red' : 'Yellow')) + ' wins!</span>';
-    } else {
-      bannerEl.textContent = "It's a draw!";
-    }
-    $('btn-rematch').hidden = false;
-  }
   function enterGame() {
     // Decide my side from my name and the names in the link (or lack of them).
     var saved = readName();
@@ -315,7 +312,6 @@
       $('game-link-label').textContent = stateToLink();
     }
     showGame();
-    showGameOverBanner();
     render();
   }
 
