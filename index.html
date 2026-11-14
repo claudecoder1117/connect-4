@@ -113,6 +113,10 @@
       <span id="pill-red" class="pill red">Red: …</span>
       <span id="pill-yellow" class="pill yellow">Yellow: …</span>
     </div>
+    <div id="room-info" style="margin-bottom:10px;text-align:center">
+      <div style="color:#94a3b8;font-size:14px">Game code: <b id="room-code-label" style="color:#e2e8f0"></b></div>
+      <div class="linkbox" id="room-link-label" style="font-size:13px;max-width:420px"></div>
+    </div>
     <div id="status">Connecting…</div>
     <div id="boardWrap"><div id="board"></div></div>
     <div id="banner"></div>
@@ -131,7 +135,7 @@
   var ROWS = 6, COLS = 7;
   var PEER_PREFIX = 'muse-c4-';
   var board = [], moves = [], gameOver = false, winCells = [];
-  var peer = null, conn = null, isHost = false, connected = false;
+  var peer = null, conn = null, isHost = false, connected = false, peerOpened = false;
   var myColor = null, myName = '', oppName = '', roomCode = '';
 
   var $ = function (id) { return document.getElementById(id); };
@@ -272,14 +276,26 @@
     roomCode = code.toUpperCase();
     myName = (name || '').trim();
     lobbyEl.hidden = true; gameEl.hidden = false;
+    $('room-code-label').textContent = roomCode;
+    $('room-link-label').textContent = roomLink(roomCode);
     resetBoardLocal();
+    peerOpened = false;
+    setTimeout(function () {
+      if (!peerOpened && !connected) {
+        statusEl.textContent = "Couldn't reach the game server — this browser or network may be blocking the connection. Try refreshing or another browser.";
+      }
+    }, 15000);
     tryHost();
   }
   function tryHost() {
     peer = new Peer(PEER_PREFIX + roomCode.toLowerCase());
     peer.on('open', function () {
+      peerOpened = true;
       isHost = true; myColor = 'R';
       updateStatus();
+    });
+    peer.on('disconnected', function () {
+      statusEl.textContent = 'Lost connection to the game server — trying to reconnect…';
     });
     peer.on('connection', function (c) {
       if (conn && conn.open) { c.on('open', function () { c.send({ t: 'full' }); setTimeout(function () { c.close(); }, 300); }); return; }
@@ -291,15 +307,18 @@
         joinAsClient();
       } else if (err && err.type === 'peer-unavailable') {
         showError('Could not reach that game. Check the code and try again.');
+        statusEl.textContent = 'Could not reach that game. Check the code and try again.';
         lobbyEl.hidden = false; gameEl.hidden = true;
       } else {
         showError('Connection error: ' + (err && err.type ? err.type : 'unknown') + '. Try refreshing.');
+        statusEl.textContent = 'Connection error: ' + (err && err.type ? err.type : 'unknown') + '. Try refreshing.';
       }
     });
   }
   function joinAsClient() {
     peer = new Peer();
     peer.on('open', function () {
+      peerOpened = true;
       var c = peer.connect(PEER_PREFIX + roomCode.toLowerCase(), { reliable: true });
       setupConn(c, false);
     });
@@ -309,13 +328,16 @@
   }
   function setupConn(c, asHost) {
     conn = c;
-    conn.on('open', function () {
+    var opened = false;
+    function onOpen() {
+      if (opened) return; opened = true;
       connected = true;
       if (!asHost) myColor = 'Y';
       conn.send({ t: 'name', name: myName });
       if (asHost) conn.send({ t: 'state', moves: moves, name: myName });
       render();
-    });
+    }
+    if (c.open) onOpen(); else c.on('open', onOpen);
     conn.on('data', function (msg) {
       if (!msg || typeof msg !== 'object') return;
       if (msg.t === 'name') { oppName = msg.name || ''; render(); }
