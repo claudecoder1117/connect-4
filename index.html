@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect 4 — Play Online</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: #0f172a; color: #e2e8f0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 12px;
+  }
+  h1 { margin: 0 0 4px; font-size: 34px; letter-spacing: 1px; }
+  h1 .r { color: #ef4444; } h1 .y { color: #facc15; }
+  .sub { color: #94a3b8; margin: 0 0 20px; }
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+    padding: 22px; width: 100%; max-width: 460px; text-align: center;
+  }
+  input[type=text] {
+    width: 100%; padding: 12px; font-size: 17px; border-radius: 10px;
+    border: 1px solid #475569; background: #0f172a; color: #e2e8f0; margin: 8px 0;
+  }
+  button {
+    font-size: 17px; font-weight: 700; border: 0; border-radius: 10px;
+    padding: 12px 20px; cursor: pointer; background: #2563eb; color: #fff; margin: 6px 4px;
+  }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #334155; }
+  button.secondary:hover { background: #475569; }
+  button:disabled { opacity: .45; cursor: default; }
+  .linkbox {
+    background: #0f172a; border: 1px solid #334155; border-radius: 10px;
+    padding: 10px; word-break: break-all; font-size: 15px; margin: 10px 0;
+  }
+  .hint { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+  .error { color: #f87171; font-weight: 600; margin-top: 10px; }
+  #status {
+    font-size: 19px; font-weight: 700; min-height: 28px; margin: 6px 0 12px;
+  }
+  #players { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .pill {
+    padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 15px;
+    border: 2px solid transparent;
+  }
+  .pill.red { background: #450a0a; color: #fca5a5; }
+  .pill.yellow { background: #422006; color: #fde047; }
+  .pill.you { border-color: #e2e8f0; }
+  #boardWrap { display: flex; flex-direction: column; align-items: center; }
+  #board {
+    display: grid; grid-template-columns: repeat(7, 52px); gap: 6px;
+    background: #1d4ed8; padding: 10px; border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  }
+  .cell {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #0f172a; cursor: pointer; position: relative;
+  }
+  .cell.filled { cursor: default; }
+  .cell .disc {
+    position: absolute; inset: 4px; border-radius: 50%;
+    box-shadow: inset 0 -4px 8px rgba(0,0,0,.35);
+  }
+  .disc.red { background: radial-gradient(circle at 35% 30%, #fca5a5, #ef4444 60%, #b91c1c); }
+  .disc.yellow { background: radial-gradient(circle at 35% 30%, #fef08a, #facc15 60%, #a16207); }
+  .disc.win { outline: 3px solid #fff; outline-offset: -1px; }
+  .cell.ghost .disc {
+    background: rgba(255,255,255,.25); box-shadow: none;
+  }
+  #board.locked .cell { cursor: default; }
+  #banner {
+    font-size: 24px; font-weight: 800; margin: 14px 0 4px; min-height: 32px;
+  }
+  #banner .r { color: #ef4444; } #banner .y { color: #facc15; }
+  #controls { margin-top: 10px; }
+  footer { margin-top: 22px; color: #64748b; font-size: 13px; }
+  @media (max-width: 480px) {
+    #board { grid-template-columns: repeat(7, 40px); gap: 5px; padding: 8px; }
+    .cell { width: 40px; height: 40px; }
+    h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+  <h1>Connect <span class="r">4</span></h1>
+  <p class="sub">Two players, one link, no sign-up.</p>
+
+  <!-- LOBBY -->
+  <div id="screen-lobby" class="card">
+    <div id="lobby-create">
+      <p style="margin-top:0">Start a game and share the link with your opponent.</p>
+      <label style="display:block;text-align:left;color:#94a3b8;font-size:14px">Your name</label>
+      <input type="text" id="name-create" maxlength="20" placeholder="e.g. Muse" autocomplete="off">
+      <button id="btn-create">Create a game</button>
+      <p class="hint">— or join with a code —</p>
+      <input type="text" id="code-join" maxlength="12" placeholder="Game code" autocomplete="off" style="text-transform:uppercase">
+      <input type="text" id="name-join" maxlength="20" placeholder="Your name" autocomplete="off">
+      <button id="btn-join" class="secondary">Join game</button>
+    </div>
+    <div id="lobby-join-link" hidden>
+      <p style="margin-top:0">You're joining game <b id="join-code-label"></b>.</p>
+      <label style="display:block;text-align:left;color:#94a3b8;font-size:14px">Your name</label>
+      <input type="text" id="name-link" maxlength="20" placeholder="e.g. Abby" autocomplete="off">
+      <button id="btn-play-link">Play</button>
+    </div>
+    <p id="lobby-error" class="error" hidden></p>
+  </div>
+
+  <!-- GAME -->
+  <div id="screen-game" hidden style="width:100%;display:flex;flex-direction:column;align-items:center">
+    <div id="players">
+      <span id="pill-red" class="pill red">Red: …</span>
+      <span id="pill-yellow" class="pill yellow">Yellow: …</span>
+    </div>
+    <div id="status">Connecting…</div>
+    <div id="boardWrap"><div id="board"></div></div>
+    <div id="banner"></div>
+    <div id="controls">
+      <button id="btn-rematch" hidden>Play again</button>
+      <button id="btn-copy-link" class="secondary">Copy game link</button>
+    </div>
+    <p class="hint" style="max-width:420px;text-align:center">Click a column to drop your disc. First to connect 4 in a row — across, down, or diagonally — wins.</p>
+  </div>
+
+  <footer>Built by Muse · peer-to-peer, no data stored anywhere</footer>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(function () {
+  var ROWS = 6, COLS = 7;
+  var PEER_PREFIX = 'muse-c4-';
+  var board = [], moves = [], gameOver = false, winCells = [];
+  var peer = null, conn = null, isHost = false, connected = false;
+  var myColor = null, myName = '', oppName = '', roomCode = '';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var lobbyEl = $('screen-lobby'), gameEl = $('screen-game');
+  var boardEl = $('board'), statusEl = $('status'), bannerEl = $('banner');
+
+  function showError(msg) {
+    var e = $('lobby-error'); e.textContent = msg; e.hidden = false;
+  }
+  function genCode() {
+    var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', s = '';
+    for (var i = 0; i < 5; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+  function roomLink(code) {
+    return location.origin + location.pathname + '?game=' + code;
+  }
+  function resetBoardLocal() {
+    board = []; moves = []; gameOver = false; winCells = [];
+    for (var r = 0; r < ROWS; r++) { board.push([]); for (var c = 0; c < COLS; c++) board[r].push(null); }
+    bannerEl.textContent = ''; $('btn-rematch').hidden = true;
+    render();
+  }
+  function render() {
+    boardEl.innerHTML = '';
+    boardEl.classList.toggle('locked', gameOver || !connected || !isMyTurn());
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        (function (r, c) {
+          var cell = document.createElement('div');
+          cell.className = 'cell' + (board[r][c] ? ' filled' : '');
+          cell.dataset.col = c;
+          if (board[r][c]) {
+            var d = document.createElement('div');
+            d.className = 'disc ' + (board[r][c] === 'R' ? 'red' : 'yellow');
+            if (winCells.some(function (w) { return w[0] === r && w[1] === c; })) d.classList.add('win');
+            cell.appendChild(d);
+          }
+          cell.addEventListener('click', function () { onColumn(c); });
+          cell.addEventListener('mouseenter', function () { showGhost(c); });
+          cell.addEventListener('mouseleave', clearGhost);
+          boardEl.appendChild(cell);
+        })(r, c);
+      }
+    }
+    updateStatus();
+  }
+  function showGhost(col) {
+    if (gameOver || !connected || !isMyTurn()) return;
+    clearGhost();
+    for (var r = ROWS - 1; r >= 0; r--) {
+      if (!board[r][col]) {
+        var cell = boardEl.children[r * COLS + col];
+        cell.classList.add('ghost');
+        var d = document.createElement('div');
+        d.className = 'disc ' + (myColor === 'R' ? 'red' : 'yellow');
+        cell.appendChild(d);
+        return;
+      }
+    }
+  }
+  function clearGhost() {
+    var ghosts = boardEl.querySelectorAll('.cell.ghost');
+    for (var i = 0; i < ghosts.length; i++) {
+      ghosts[i].classList.remove('ghost');
+      var d = ghosts[i].querySelector('.disc');
+      if (d && !ghosts[i].classList.contains('filled')) ghosts[i].removeChild(d);
+    }
+  }
+  function isMyTurn() {
+    if (!myColor || gameOver) return false;
+    return (moves.length % 2 === 0) === (myColor === 'R');
+  }
+  function turnColor() { return moves.length % 2 === 0 ? 'R' : 'Y'; }
+  function onColumn(col) {
+    if (gameOver || !connected || !isMyTurn()) return;
+    applyMove(col, false);
+  }
+  function applyMove(col, remote) {
+    if (gameOver) return false;
+    if (!remote && !isMyTurn()) return false;
+    var row = -1;
+    for (var r = ROWS - 1; r >= 0; r--) { if (!board[r][col]) { row = r; break; } }
+    if (row === -1) return false;
+    var color = turnColor();
+    board[row][col] = color;
+    moves.push(col);
+    if (!remote && conn && conn.open) conn.send({ t: 'move', c: col });
+    var win = checkWin(row, col, color);
+    if (win) {
+      gameOver = true; winCells = win;
+      var winner = color === 'R' ? $('pill-red').textContent : $('pill-yellow').textContent;
+      bannerEl.innerHTML = '<span class="' + (color === 'R' ? 'r' : 'y') + '">' + escapeHtml(nameOf(color)) + ' wins!</span>';
+      $('btn-rematch').hidden = false;
+    } else if (moves.length === ROWS * COLS) {
+      gameOver = true;
+      bannerEl.textContent = "It's a draw!";
+      $('btn-rematch').hidden = false;
+    }
+    render();
+    return true;
+  }
+  function nameOf(color) {
+    if (color === myColor) return myName || (color === 'R' ? 'Red' : 'Yellow');
+    return oppName || (color === 'R' ? 'Red' : 'Yellow');
+  }
+  function checkWin(row, col, color) {
+    var dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+    for (var d = 0; d < dirs.length; d++) {
+      var cells = [[row, col]];
+      var dr = dirs[d][0], dc = dirs[d][1];
+      var r = row + dr, c = col + dc;
+      while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === color) { cells.push([r, c]); r += dr; c += dc; }
+      r = row - dr; c = col - dc;
+      while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === color) { cells.push([r, c]); r -= dr; c -= dc; }
+      if (cells.length >= 4) return cells.slice(0, 4);
+    }
+    return null;
+  }
+  function updateStatus() {
+    if (!connected) { statusEl.textContent = 'Waiting for opponent…'; return; }
+    if (gameOver) { statusEl.textContent = 'Game over'; return; }
+    statusEl.textContent = isMyTurn()
+      ? 'Your turn — drop a disc'
+      : 'Waiting for ' + (oppName || 'opponent') + '…';
+    $('pill-red').textContent = 'Red: ' + (myColor === 'R' ? (myName || 'You') : (oppName || '…')) + (myColor === 'R' ? ' (you)' : '');
+    $('pill-yellow').textContent = 'Yellow: ' + (myColor === 'Y' ? (myName || 'You') : (oppName || '…')) + (myColor === 'Y' ? ' (you)' : '');
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
+  }
+
+  // ---- networking ----
+  function startRoom(code, name) {
+    if (typeof Peer === 'undefined') { showError('Could not load the connection library. Check your connection and refresh.'); return; }
+    roomCode = code.toUpperCase();
+    myName = (name || '').trim();
+    lobbyEl.hidden = true; gameEl.hidden = false;
+    resetBoardLocal();
+    tryHost();
+  }
+  function tryHost() {
+    peer = new Peer(PEER_PREFIX + roomCode.toLowerCase());
+    peer.on('open', function () {
+      isHost = true; myColor = 'R';
+      updateStatus();
+    });
+    peer.on('connection', function (c) {
+      if (conn && conn.open) { c.on('open', function () { c.send({ t: 'full' }); setTimeout(function () { c.close(); }, 300); }); return; }
+      setupConn(c, true);
+    });
+    peer.on('error', function (err) {
+      if (err && err.type === 'unavailable-id') {
+        peer.destroy();
+        joinAsClient();
+      } else if (err && err.type === 'peer-unavailable') {
+        showError('Could not reach that game. Check the code and try again.');
+        lobbyEl.hidden = false; gameEl.hidden = true;
+      } else {
+        showError('Connection error: ' + (err && err.type ? err.type : 'unknown') + '. Try refreshing.');
+      }
+    });
+  }
+  function joinAsClient() {
+    peer = new Peer();
+    peer.on('open', function () {
+      var c = peer.connect(PEER_PREFIX + roomCode.toLowerCase(), { reliable: true });
+      setupConn(c, false);
+    });
+    peer.on('error', function (err) {
+      showError('Connection error: ' + (err && err.type ? err.type : 'unknown') + '. Try refreshing.');
+    });
+  }
+  function setupConn(c, asHost) {
+    conn = c;
+    conn.on('open', function () {
+      connected = true;
+      if (!asHost) myColor = 'Y';
+      conn.send({ t: 'name', name: myName });
+      if (asHost) conn.send({ t: 'state', moves: moves, name: myName });
+      render();
+    });
+    conn.on('data', function (msg) {
+      if (!msg || typeof msg !== 'object') return;
+      if (msg.t === 'name') { oppName = msg.name || ''; render(); }
+      else if (msg.t === 'move') { applyMove(msg.c, true); }
+      else if (msg.t === 'state') {
+        oppName = msg.name || '';
+        resetBoardLocal();
+        (msg.moves || []).forEach(function (col) { applyMove(col, true); });
+        render();
+      }
+      else if (msg.t === 'reset') { resetBoardLocal(); }
+      else if (msg.t === 'full') { showError('That game is already full.'); }
+    });
+    conn.on('close', function () {
+      connected = false; conn = null;
+      statusEl.textContent = 'Opponent left the game.';
+      render();
+    });
+    conn.on('error', function () {
+      connected = false;
+      statusEl.textContent = 'Connection lost.';
+      render();
+    });
+  }
+
+  // ---- lobby wiring ----
+  $('btn-create').addEventListener('click', function () {
+    startRoom(genCode(), $('name-create').value);
+  });
+  $('btn-join').addEventListener('click', function () {
+    var code = $('code-join').value.trim();
+    if (!code) { showError('Enter a game code first.'); return; }
+    startRoom(code, $('name-join').value);
+  });
+  $('btn-play-link').addEventListener('click', function () {
+    startRoom(roomCode, $('name-link').value);
+  });
+  $('btn-rematch').addEventListener('click', function () {
+    resetBoardLocal();
+    if (conn && conn.open) conn.send({ t: 'reset' });
+  });
+  $('btn-copy-link').addEventListener('click', function () {
+    var link = roomLink(roomCode);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(function () {
+        $('btn-copy-link').textContent = 'Copied!';
+        setTimeout(function () { $('btn-copy-link').textContent = 'Copy game link'; }, 1500);
+      });
+    } else {
+      prompt('Copy this link:', link);
+    }
+  });
+
+  // ---- entry: ?game=CODE link ----
+  var params = new URLSearchParams(location.search);
+  var codeParam = params.get('game');
+  if (codeParam) {
+    roomCode = codeParam.toUpperCase();
+    $('lobby-create').hidden = true;
+    $('lobby-join-link').hidden = false;
+    $('join-code-label').textContent = roomCode;
+  }
+})();
+</script>
+</body>
+</html>
