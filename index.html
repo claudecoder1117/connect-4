@@ -32,18 +32,14 @@
   button:disabled { opacity: .45; cursor: default; }
   .linkbox {
     background: #0f172a; border: 1px solid #334155; border-radius: 10px;
-    padding: 10px; word-break: break-all; font-size: 15px; margin: 10px 0;
+    padding: 10px; word-break: break-all; font-size: 14px; margin: 10px 0;
   }
   .hint { color: #94a3b8; font-size: 14px; line-height: 1.5; }
-  .error { color: #f87171; font-weight: 600; margin-top: 10px; }
-  #status {
-    font-size: 19px; font-weight: 700; min-height: 28px; margin: 6px 0 12px;
-  }
+  #screen-game { width: 100%; flex-direction: column; align-items: center; }
+  #screen-game:not([hidden]) { display: flex; }
+  #status { font-size: 19px; font-weight: 700; min-height: 28px; margin: 6px 0 12px; text-align: center; max-width: 460px; }
   #players { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-  .pill {
-    padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 15px;
-    border: 2px solid transparent;
-  }
+  .pill { padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 15px; border: 2px solid transparent; }
   .pill.red { background: #450a0a; color: #fca5a5; }
   .pill.yellow { background: #422006; color: #fde047; }
   .pill.you { border-color: #e2e8f0; }
@@ -53,27 +49,17 @@
     background: #1d4ed8; padding: 10px; border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0,0,0,.5);
   }
-  .cell {
-    width: 52px; height: 52px; border-radius: 50%;
-    background: #0f172a; cursor: pointer; position: relative;
-  }
+  .cell { width: 52px; height: 52px; border-radius: 50%; background: #0f172a; cursor: pointer; position: relative; }
   .cell.filled { cursor: default; }
-  .cell .disc {
-    position: absolute; inset: 4px; border-radius: 50%;
-    box-shadow: inset 0 -4px 8px rgba(0,0,0,.35);
-  }
+  .cell .disc { position: absolute; inset: 4px; border-radius: 50%; box-shadow: inset 0 -4px 8px rgba(0,0,0,.35); }
   .disc.red { background: radial-gradient(circle at 35% 30%, #fca5a5, #ef4444 60%, #b91c1c); }
   .disc.yellow { background: radial-gradient(circle at 35% 30%, #fef08a, #facc15 60%, #a16207); }
   .disc.win { outline: 3px solid #fff; outline-offset: -1px; }
-  .cell.ghost .disc {
-    background: rgba(255,255,255,.25); box-shadow: none;
-  }
+  .cell.ghost .disc { background: rgba(255,255,255,.25); box-shadow: none; }
   #board.locked .cell { cursor: default; }
-  #banner {
-    font-size: 24px; font-weight: 800; margin: 14px 0 4px; min-height: 32px;
-  }
+  #banner { font-size: 24px; font-weight: 800; margin: 14px 0 4px; min-height: 32px; text-align: center; }
   #banner .r { color: #ef4444; } #banner .y { color: #facc15; }
-  #controls { margin-top: 10px; }
+  #controls { margin-top: 10px; text-align: center; }
   footer { margin-top: 22px; color: #64748b; font-size: 13px; }
   @media (max-width: 480px) {
     #board { grid-template-columns: repeat(7, 40px); gap: 5px; padding: 8px; }
@@ -86,82 +72,111 @@
   <h1>Connect <span class="r">4</span></h1>
   <p class="sub">Two players, one link, no sign-up.</p>
 
-  <!-- LOBBY -->
-  <div id="screen-lobby" class="card">
-    <div id="lobby-create">
-      <p style="margin-top:0">Start a game and share the link with your opponent.</p>
-      <label style="display:block;text-align:left;color:#94a3b8;font-size:14px">Your name</label>
-      <input type="text" id="name-create" maxlength="20" placeholder="e.g. Muse" autocomplete="off">
-      <button id="btn-create">Create a game</button>
-      <p class="hint">— or join with a code —</p>
-      <input type="text" id="code-join" maxlength="12" placeholder="Game code" autocomplete="off" style="text-transform:uppercase">
-      <input type="text" id="name-join" maxlength="20" placeholder="Your name" autocomplete="off">
-      <button id="btn-join" class="secondary">Join game</button>
-    </div>
-    <div id="lobby-join-link" hidden>
-      <p style="margin-top:0">You're joining game <b id="join-code-label"></b>.</p>
-      <label style="display:block;text-align:left;color:#94a3b8;font-size:14px">Your name</label>
-      <input type="text" id="name-link" maxlength="20" placeholder="e.g. Abby" autocomplete="off">
-      <button id="btn-play-link">Play</button>
-    </div>
-    <p id="lobby-error" class="error" hidden></p>
+  <!-- LOBBY: no game link yet -->
+  <div id="screen-lobby" class="card" hidden>
+    <p style="margin-top:0">Start a game and send the link to your opponent. They move, send the link back — and so on.</p>
+    <label style="display:block;text-align:left;color:#94a3b8;font-size:14px">Your name</label>
+    <input type="text" id="name-create" maxlength="20" placeholder="e.g. Muse" autocomplete="off">
+    <button id="btn-create">Create a game</button>
+    <p class="hint">How it works: the link <i>is</i> the game — it carries the whole board. After your move, copy the link and send it to your opponent. No account, no data stored anywhere.</p>
+  </div>
+
+  <!-- JOIN: game link opened, need a name -->
+  <div id="screen-join" class="card" hidden>
+    <p style="margin-top:0">You're joining a Connect 4 game.</p>
+    <label style="display:block;text-align:left;color:#94a3b8;font-size:14px">Your name</label>
+    <input type="text" id="name-join" maxlength="20" placeholder="e.g. Abby" autocomplete="off">
+    <button id="btn-join">Join game</button>
   </div>
 
   <!-- GAME -->
-  <div id="screen-game" hidden style="width:100%;display:flex;flex-direction:column;align-items:center">
+  <div id="screen-game" hidden>
     <div id="players">
       <span id="pill-red" class="pill red">Red: …</span>
       <span id="pill-yellow" class="pill yellow">Yellow: …</span>
     </div>
-    <div id="room-info" style="margin-bottom:10px;text-align:center">
-      <div style="color:#94a3b8;font-size:14px">Game code: <b id="room-code-label" style="color:#e2e8f0"></b></div>
-      <div class="linkbox" id="room-link-label" style="font-size:13px;max-width:420px"></div>
-    </div>
-    <div id="status">Connecting…</div>
+    <div id="status">Loading…</div>
     <div id="boardWrap"><div id="board"></div></div>
     <div id="banner"></div>
     <div id="controls">
+      <button id="btn-copy-link">Copy link to send</button>
       <button id="btn-rematch" hidden>Play again</button>
-      <button id="btn-copy-link" class="secondary">Copy game link</button>
+      <button id="btn-new" class="secondary">New game</button>
     </div>
-    <p class="hint" style="max-width:420px;text-align:center">Click a column to drop your disc. First to connect 4 in a row — across, down, or diagonally — wins.</p>
+    <div class="linkbox" id="game-link-label" style="max-width:460px"></div>
+    <p class="hint" style="max-width:420px;text-align:center">Click a column to drop your disc. First to connect 4 in a row — across, down, or diagonally — wins. After your move, copy the link and send it to your opponent.</p>
   </div>
 
-  <footer>Built by Muse · peer-to-peer, no data stored anywhere</footer>
+  <footer>Built by Muse · the link carries the whole game — no server, no data stored anywhere</footer>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 (function () {
   var ROWS = 6, COLS = 7;
-  var PEER_PREFIX = 'muse-c4-';
   var board = [], moves = [], gameOver = false, winCells = [];
-  var peer = null, conn = null, isHost = false, connected = false, peerOpened = false;
-  var myColor = null, myName = '', oppName = '', roomCode = '';
+  var names = { R: '', Y: '' };
+  var myColor = null, myName = '';
 
   var $ = function (id) { return document.getElementById(id); };
-  var lobbyEl = $('screen-lobby'), gameEl = $('screen-game');
+  var lobbyEl = $('screen-lobby'), joinEl = $('screen-join'), gameEl = $('screen-game');
   var boardEl = $('board'), statusEl = $('status'), bannerEl = $('banner');
 
-  function showError(msg) {
-    var e = $('lobby-error'); e.textContent = msg; e.hidden = false;
+  function readName() {
+    try { return sessionStorage.getItem('c4-name') || ''; } catch (e) { return ''; }
   }
-  function genCode() {
-    var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', s = '';
-    for (var i = 0; i < 5; i++) s += chars[Math.floor(Math.random() * chars.length)];
-    return s;
+  function saveName(n) {
+    try { sessionStorage.setItem('c4-name', n); } catch (e) {}
   }
-  function roomLink(code) {
-    return location.origin + location.pathname + '?game=' + code;
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
   }
-  function resetBoardLocal() {
+  function stateToHash() {
+    return '#s=' + moves.join('') + '&r=' + encodeURIComponent(names.R) + '&y=' + encodeURIComponent(names.Y);
+  }
+  function stateToLink() {
+    return location.origin + location.pathname + stateToHash();
+  }
+  function parseHash() {
+    var h = location.hash.slice(1);
+    if (!h) return null;
+    var p = new URLSearchParams(h);
+    var s = p.get('s') || '';
+    if (!/^[0-6]*$/.test(s)) return null;
+    return { moves: s.split('').map(Number), R: p.get('r') || '', Y: p.get('y') || '' };
+  }
+  function loadState(st) {
     board = []; moves = []; gameOver = false; winCells = [];
+    names = { R: st.R, Y: st.Y };
     for (var r = 0; r < ROWS; r++) { board.push([]); for (var c = 0; c < COLS; c++) board[r].push(null); }
     bannerEl.textContent = ''; $('btn-rematch').hidden = true;
+    for (var i = 0; i < st.moves.length; i++) {
+      if (!applyMoveRaw(st.moves[i])) break;
+    }
+    $('game-link-label').textContent = stateToLink();
     render();
+  }
+  // Places one disc; returns the color placed, or null if the move is illegal.
+  function applyMoveRaw(col) {
+    if (col < 0 || col >= COLS) return null;
+    var row = -1;
+    for (var r = ROWS - 1; r >= 0; r--) { if (!board[r][col]) { row = r; break; } }
+    if (row === -1) return null;
+    var color = moves.length % 2 === 0 ? 'R' : 'Y';
+    board[row][col] = color;
+    moves.push(col);
+    var win = checkWin(row, col, color);
+    if (win) { gameOver = true; winCells = win; }
+    else if (moves.length === ROWS * COLS) { gameOver = true; }
+    return color;
+  }
+  function lastMover() {
+    if (!moves.length) return null;
+    return moves.length % 2 === 1 ? 'R' : 'Y';
   }
   function render() {
     boardEl.innerHTML = '';
-    boardEl.classList.toggle('locked', gameOver || !connected || !isMyTurn());
+    boardEl.classList.toggle('locked', gameOver || !isMyTurn());
     for (var r = 0; r < ROWS; r++) {
       for (var c = 0; c < COLS; c++) {
         (function (r, c) {
@@ -184,7 +199,7 @@
     updateStatus();
   }
   function showGhost(col) {
-    if (gameOver || !connected || !isMyTurn()) return;
+    if (gameOver || !isMyTurn()) return;
     clearGhost();
     for (var r = ROWS - 1; r >= 0; r--) {
       if (!board[r][col]) {
@@ -205,42 +220,27 @@
       if (d && !ghosts[i].classList.contains('filled')) ghosts[i].removeChild(d);
     }
   }
+  function turnColor() { return moves.length % 2 === 0 ? 'R' : 'Y'; }
   function isMyTurn() {
     if (!myColor || gameOver) return false;
-    return (moves.length % 2 === 0) === (myColor === 'R');
+    return turnColor() === myColor;
   }
-  function turnColor() { return moves.length % 2 === 0 ? 'R' : 'Y'; }
   function onColumn(col) {
-    if (gameOver || !connected || !isMyTurn()) return;
-    applyMove(col, false);
-  }
-  function applyMove(col, remote) {
-    if (gameOver) return false;
-    if (!remote && !isMyTurn()) return false;
-    var row = -1;
-    for (var r = ROWS - 1; r >= 0; r--) { if (!board[r][col]) { row = r; break; } }
-    if (row === -1) return false;
-    var color = turnColor();
-    board[row][col] = color;
-    moves.push(col);
-    if (!remote && conn && conn.open) conn.send({ t: 'move', c: col });
-    var win = checkWin(row, col, color);
-    if (win) {
-      gameOver = true; winCells = win;
-      var winner = color === 'R' ? $('pill-red').textContent : $('pill-yellow').textContent;
-      bannerEl.innerHTML = '<span class="' + (color === 'R' ? 'r' : 'y') + '">' + escapeHtml(nameOf(color)) + ' wins!</span>';
-      $('btn-rematch').hidden = false;
-    } else if (moves.length === ROWS * COLS) {
-      gameOver = true;
-      bannerEl.textContent = "It's a draw!";
+    if (gameOver || !isMyTurn()) return;
+    var color = applyMoveRaw(col);
+    if (!color) return;
+    history.replaceState(null, '', stateToHash());
+    $('game-link-label').textContent = stateToLink();
+    if (gameOver) {
+      if (winCells.length) {
+        var winner = color === 'R' ? names.R : names.Y;
+        bannerEl.innerHTML = '<span class="' + (color === 'R' ? 'r' : 'y') + '">' + escapeHtml(winner || (color === 'R' ? 'Red' : 'Yellow')) + ' wins!</span>';
+      } else {
+        bannerEl.textContent = "It's a draw!";
+      }
       $('btn-rematch').hidden = false;
     }
     render();
-    return true;
-  }
-  function nameOf(color) {
-    if (color === myColor) return myName || (color === 'R' ? 'Red' : 'Yellow');
-    return oppName || (color === 'R' ? 'Red' : 'Yellow');
   }
   function checkWin(row, col, color) {
     var dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
@@ -255,151 +255,133 @@
     }
     return null;
   }
+  function oppName() {
+    if (!myColor) return '';
+    return myColor === 'R' ? names.Y : names.R;
+  }
   function updateStatus() {
-    if (!connected) { statusEl.textContent = 'Waiting for opponent…'; return; }
-    if (gameOver) { statusEl.textContent = 'Game over'; return; }
-    statusEl.textContent = isMyTurn()
-      ? 'Your turn — drop a disc'
-      : 'Waiting for ' + (oppName || 'opponent') + '…';
-    $('pill-red').textContent = 'Red: ' + (myColor === 'R' ? (myName || 'You') : (oppName || '…')) + (myColor === 'R' ? ' (you)' : '');
-    $('pill-yellow').textContent = 'Yellow: ' + (myColor === 'Y' ? (myName || 'You') : (oppName || '…')) + (myColor === 'Y' ? ' (you)' : '');
-  }
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, function (m) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
-    });
-  }
-
-  // ---- networking ----
-  function startRoom(code, name) {
-    if (typeof Peer === 'undefined') { showError('Could not load the connection library. Check your connection and refresh.'); return; }
-    roomCode = code.toUpperCase();
-    myName = (name || '').trim();
-    lobbyEl.hidden = true; gameEl.hidden = false;
-    $('room-code-label').textContent = roomCode;
-    $('room-link-label').textContent = roomLink(roomCode);
-    resetBoardLocal();
-    peerOpened = false;
-    setTimeout(function () {
-      if (!peerOpened && !connected) {
-        statusEl.textContent = "Couldn't reach the game server — this browser or network may be blocking the connection. Try refreshing or another browser.";
-      }
-    }, 15000);
-    tryHost();
-  }
-  function tryHost() {
-    peer = new Peer(PEER_PREFIX + roomCode.toLowerCase());
-    peer.on('open', function () {
-      peerOpened = true;
-      isHost = true; myColor = 'R';
-      updateStatus();
-    });
-    peer.on('disconnected', function () {
-      statusEl.textContent = 'Lost connection to the game server — trying to reconnect…';
-    });
-    peer.on('connection', function (c) {
-      if (conn && conn.open) { c.on('open', function () { c.send({ t: 'full' }); setTimeout(function () { c.close(); }, 300); }); return; }
-      setupConn(c, true);
-    });
-    peer.on('error', function (err) {
-      if (err && err.type === 'unavailable-id') {
-        peer.destroy();
-        joinAsClient();
-      } else if (err && err.type === 'peer-unavailable') {
-        showError('Could not reach that game. Check the code and try again.');
-        statusEl.textContent = 'Could not reach that game. Check the code and try again.';
-        lobbyEl.hidden = false; gameEl.hidden = true;
-      } else {
-        showError('Connection error: ' + (err && err.type ? err.type : 'unknown') + '. Try refreshing.');
-        statusEl.textContent = 'Connection error: ' + (err && err.type ? err.type : 'unknown') + '. Try refreshing.';
-      }
-    });
-  }
-  function joinAsClient() {
-    peer = new Peer();
-    peer.on('open', function () {
-      peerOpened = true;
-      var c = peer.connect(PEER_PREFIX + roomCode.toLowerCase(), { reliable: true });
-      setupConn(c, false);
-    });
-    peer.on('error', function (err) {
-      showError('Connection error: ' + (err && err.type ? err.type : 'unknown') + '. Try refreshing.');
-    });
-  }
-  function setupConn(c, asHost) {
-    conn = c;
-    var opened = false;
-    function onOpen() {
-      if (opened) return; opened = true;
-      connected = true;
-      if (!asHost) myColor = 'Y';
-      conn.send({ t: 'name', name: myName });
-      if (asHost) conn.send({ t: 'state', moves: moves, name: myName });
-      render();
+    $('pill-red').textContent = 'Red: ' + (names.R || '…') + (myColor === 'R' ? ' (you)' : '');
+    $('pill-yellow').textContent = 'Yellow: ' + (names.Y || '…') + (myColor === 'Y' ? ' (you)' : '');
+    $('pill-red').classList.toggle('you', myColor === 'R');
+    $('pill-yellow').classList.toggle('you', myColor === 'Y');
+    if (gameOver) {
+      statusEl.textContent = winCells.length
+        ? 'Game over — copy the link to show ' + (oppName() || 'your opponent') + ' the result!'
+        : "Game over — it's a draw!";
+      return;
     }
-    if (c.open) onOpen(); else c.on('open', onOpen);
-    conn.on('data', function (msg) {
-      if (!msg || typeof msg !== 'object') return;
-      if (msg.t === 'name') { oppName = msg.name || ''; render(); }
-      else if (msg.t === 'move') { applyMove(msg.c, true); }
-      else if (msg.t === 'state') {
-        oppName = msg.name || '';
-        resetBoardLocal();
-        (msg.moves || []).forEach(function (col) { applyMove(col, true); });
-        render();
+    if (!myColor) { statusEl.textContent = "You're watching this game."; return; }
+    if (isMyTurn()) {
+      statusEl.textContent = moves.length === 0 && myColor === 'R'
+        ? 'Your turn — drop a disc, then send your opponent the link'
+        : 'Your turn — drop a disc';
+    } else {
+      var opp = oppName();
+      if (!opp) {
+        statusEl.textContent = 'Waiting for your opponent to join — send them the link below.';
+      } else if (lastMover() === myColor) {
+        statusEl.textContent = 'Your disc is in — copy the link and send it to ' + opp + '!';
+      } else {
+        statusEl.textContent = 'Waiting for ' + opp + ' to move…';
       }
-      else if (msg.t === 'reset') { resetBoardLocal(); }
-      else if (msg.t === 'full') { showError('That game is already full.'); }
-    });
-    conn.on('close', function () {
-      connected = false; conn = null;
-      statusEl.textContent = 'Opponent left the game.';
-      render();
-    });
-    conn.on('error', function () {
-      connected = false;
-      statusEl.textContent = 'Connection lost.';
-      render();
-    });
+    }
+  }
+  function showGame() {
+    lobbyEl.hidden = true; joinEl.hidden = true; gameEl.hidden = false;
+  }
+  function showGameOverBanner() {
+    if (!gameOver) return;
+    if (winCells.length) {
+      var w = lastMover();
+      var winner = w === 'R' ? names.R : names.Y;
+      bannerEl.innerHTML = '<span class="' + (w === 'R' ? 'r' : 'y') + '">' + escapeHtml(winner || (w === 'R' ? 'Red' : 'Yellow')) + ' wins!</span>';
+    } else {
+      bannerEl.textContent = "It's a draw!";
+    }
+    $('btn-rematch').hidden = false;
+  }
+  function enterGame() {
+    // Decide my side from my name and the names in the link (or lack of them).
+    var saved = readName();
+    if (saved) myName = saved;
+    if (myName && names.R === myName) myColor = 'R';
+    else if (myName && names.Y === myName) myColor = 'Y';
+    else if (!names.R) { myColor = 'R'; names.R = myName; }
+    else if (!names.Y) { myColor = 'Y'; names.Y = myName; }
+    else { myColor = null; } // both sides taken by others: spectating
+    if (myColor) {
+      saveName(myName);
+      history.replaceState(null, '', stateToHash());
+      $('game-link-label').textContent = stateToLink();
+    }
+    showGame();
+    showGameOverBanner();
+    render();
   }
 
-  // ---- lobby wiring ----
+  // ---- wiring ----
   $('btn-create').addEventListener('click', function () {
-    startRoom(genCode(), $('name-create').value);
+    var name = $('name-create').value.trim();
+    if (!name) { $('name-create').focus(); return; }
+    myName = name;
+    names = { R: name, Y: '' };
+    moves = [];
+    history.replaceState(null, '', stateToHash());
+    enterGame();
   });
   $('btn-join').addEventListener('click', function () {
-    var code = $('code-join').value.trim();
-    if (!code) { showError('Enter a game code first.'); return; }
-    startRoom(code, $('name-join').value);
-  });
-  $('btn-play-link').addEventListener('click', function () {
-    startRoom(roomCode, $('name-link').value);
-  });
-  $('btn-rematch').addEventListener('click', function () {
-    resetBoardLocal();
-    if (conn && conn.open) conn.send({ t: 'reset' });
+    var name = $('name-join').value.trim();
+    if (!name) { $('name-join').focus(); return; }
+    myName = name;
+    enterGame();
   });
   $('btn-copy-link').addEventListener('click', function () {
-    var link = roomLink(roomCode);
+    var link = stateToLink();
+    function done() {
+      $('btn-copy-link').textContent = 'Copied!';
+      setTimeout(function () { $('btn-copy-link').textContent = 'Copy link to send'; }, 1500);
+    }
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(link).then(function () {
-        $('btn-copy-link').textContent = 'Copied!';
-        setTimeout(function () { $('btn-copy-link').textContent = 'Copy game link'; }, 1500);
-      });
+      navigator.clipboard.writeText(link).then(done, function () { prompt('Copy this link:', link); });
     } else {
       prompt('Copy this link:', link);
     }
   });
+  $('btn-rematch').addEventListener('click', function () {
+    moves = [];
+    history.replaceState(null, '', stateToHash());
+    loadState({ moves: [], R: names.R, Y: names.Y });
+    $('game-link-label').textContent = stateToLink();
+  });
+  $('btn-new').addEventListener('click', function () {
+    history.replaceState(null, '', location.pathname + location.search);
+    names = { R: '', Y: '' }; moves = []; myColor = null;
+    gameEl.hidden = true; lobbyEl.hidden = false;
+    $('name-create').value = readName();
+  });
+  window.addEventListener('hashchange', function () {
+    var st = parseHash();
+    if (st) loadState(st);
+  });
 
-  // ---- entry: ?game=CODE link ----
-  var params = new URLSearchParams(location.search);
-  var codeParam = params.get('game');
-  if (codeParam) {
-    roomCode = codeParam.toUpperCase();
-    $('lobby-create').hidden = true;
-    $('lobby-join-link').hidden = false;
-    $('join-code-label').textContent = roomCode;
-  }
+  // ---- entry ----
+  (function init() {
+    var saved = readName();
+    var st = parseHash();
+    if (!st) {
+      lobbyEl.hidden = false;
+      $('name-create').value = saved;
+      return;
+    }
+    loadState(st);
+    if (saved && (saved === st.R || saved === st.Y || st.R === '' || st.Y === '')) {
+      myName = saved;
+      enterGame();
+    } else {
+      joinEl.hidden = false;
+      $('name-join').value = saved;
+    }
+  })();
 })();
 </script>
 </body>
